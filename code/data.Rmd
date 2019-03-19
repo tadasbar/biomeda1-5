@@ -1,0 +1,39 @@
+
+# Sample Key generation
+
+```{r libs, include = FALSE, echo = FALSE}
+library(recount)
+```
+
+## Sample key production
+
+```{r filenames, echo = FALSE, include = FALSE}
+filenames <- list.files('input/')
+filenames <- filenames[grep(filenames, pattern="GSM")]
+
+basenames <- list.files("input/", full.names=TRUE)
+basenames <- basenames[grep(basenames, pattern="GSM")]
+basenames <- sub(basenames, pattern="_....idat.gz", replacement="")
+basenames <- basenames[!duplicated(basenames)]
+
+
+gsms <- sub(filenames, pattern="(GSM.*?)_.*", replacement="\\1")
+gsms <- gsms[!duplicated(gsms)]
+
+if(!file.exists("output/sample_list.RDS")){
+	sample_list <- lapply(gsms, function(x) geo_characteristics(geo_info(x)))
+} else {
+	sample_list <- readRDS("output/sample_list.RDS")
+}
+
+sample_key <- Reduce(sample_list, f = rbind)
+sample_key$gsm <- gsms
+sample_key$basename <- basenames
+saveRDS(sample_key, "output/sample_key.RDS")
+```
+
+Head of the sample key
+
+```{r head, echo = FALSE, include = TRUE}
+head(sample_key)
+```
