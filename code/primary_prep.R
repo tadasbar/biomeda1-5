@@ -1,13 +1,8 @@
-
-# Sample Key generation
-
-```{r libs, include = FALSE, echo = FALSE}
-library(recount)
-```
-
 ## Sample key production
 
-```{r filenames, echo = FALSE, include = FALSE}
+library(recount)
+
+
 filenames <- list.files('input/')
 filenames <- filenames[grep(filenames, pattern="GSM")]
 
@@ -32,10 +27,3 @@ sample_key <- Reduce(sample_list, f = rbind)
 sample_key$gsm <- gsms
 sample_key$basename <- basenames
 saveRDS(sample_key, "output/sample_key.RDS")
-```
-
-Head of the sample key
-
-```{r head, echo = FALSE, include = TRUE}
-head(sample_key)
-```
