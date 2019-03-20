@@ -1,25 +1,5 @@
-
-```{r minfi, echo = FALSE, include = FALSE}
-library(minfi)
-```
-
-```{r input, echo = FALSE, include = FALSE}
-baseDir <- "input/"
-targets <- readRDS("output/sample_key.RDS")
-targets$Basename <- targets$basename
-RGS_file <- "output/RGCS.RDS"
-if(!file.exists(RGS_file)){
-	met_data <- read.metharray.exp(targets = targets)	
-	saveRDS(met_data, RGS_file)
-} else {
-	met_data <- readRDS(RGS_file)
-}
-
-outputObjs <- list(dims = dim(met_data),
-	samp_info = head(pData(met_data)),
-	probe_info = head(getProbeInfo(met_data)))
-saveRDS(outputObjs, file = "output/minfo_objs.RDS")
-
+```{r data load, echo = FALSE, include = FALSE}
+minfi_outs <- readRDS("../output/minfo_objs.RDS")
 ```
 
 # DNA methylation signature of human fetal alcohol spectrum disorder
@@ -28,28 +8,29 @@ saveRDS(outputObjs, file = "output/minfo_objs.RDS")
 
 The data describes genome-wide DNA methylation patterns of
 buccal epithelial cells taken from 206 children, 96 of which are controls
-and 110 are cases. DNA was analysed using the Illumina450k array.
+and 110 are cases. DNA was analysed using the IlluminaHumanMethylation450 array.
 
 ## The data
 
 Dimensions of the data:
 
-```{r dims, echo = TRUE, include = TRUE)
-dim(met_data)
+```{r dims, echo = FALSE, include = TRUE}
+print(minfi_outs$dims)
 ```
 
-That is, there are `r ncol(met_data)` samples and 
-`r nrow(met_data)` probes.
+That is, there are `r minfi_outs$dims[2]` samples and 
+`r minfi_outs$dims[1]` probes.
 
 
 ## Info on some samples
 
-```{r summary, echo = FALSE, include = FALSE}
-head(pData(met_data))
+```{r sample summary, echo = FALSE, include = TRUE}
+suppressWarnings(suppressMessages(print(minfi_outs$samp_info)))
 ```
 
 ## Info on some probes
 
-```{r summary, echo = FALSE, include = FALSE}
-head(getProbeInfo(met_data))
+```{r probe summary, echo = FALSE, include = TRUE}
+suppressWarnings(suppressMessages(print(minfi_outs$probe_info)))
+#print(minfi_outs$probe_info)
 ```
