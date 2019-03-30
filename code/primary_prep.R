@@ -18,7 +18,7 @@ gsms <- gsms[!duplicated(gsms)]
 sample_list_file <- "output/sample_list.RDS"
 if(!file.exists(sample_list_file)){
 	sample_list <- lapply(gsms, function(x) geo_characteristics(geo_info(x)))
-	writeRDS(sample_list, file = sample_list_file)
+	saveRDS(sample_list, file = sample_list_file)
 } else {
 	sample_list <- readRDS(sample_list_file)
 }

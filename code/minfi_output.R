@@ -14,5 +14,5 @@ if(!file.exists(RGS_file)){
 outputObjs <- list(dims = dim(met_data),
     samp_info = head(pData(met_data)),
     probe_info = head(getProbeInfo(met_data)))
-saveRDS(outputObjs, file = "output/minfo_objs.RDS")
+saveRDS(outputObjs, file = "reports/mini_output/minfo_objs.RDS")
 
