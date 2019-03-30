@@ -1,5 +1,5 @@
 ```{r data load, echo = FALSE, include = FALSE}
-minfi_outs <- readRDS("../output/minfo_objs.RDS")
+minfi_outs <- readRDS("../reports/mini_output/minfo_objs.RDS")
 ```
 
 # DNA methylation signature of human fetal alcohol spectrum disorder
