@@ -8,8 +8,8 @@ sample_key = readRDS("output/sample_key.RDS")
 age_range = range(as.numeric(sample_key$age))
 sexes =  unique(sample_key$sex)
 # which columns have the same value in all rows
-non_redundand = !(sapply(sample_key, function(x) length(unique(x))) == 1)
-sample_key <- sample_key[, non_redundand] 
+non_redundant = !(sapply(sample_key, function(x) length(unique(x))) == 1)
+sample_key <- sample_key[, non_redundant] 
 
 colnames(sample_key)[colnames(sample_key) == "basename"] = "Basename"
 
