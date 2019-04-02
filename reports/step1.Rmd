@@ -3,7 +3,9 @@ library(annmatrix)
 library(ggplot2)
 library(reshape2)
 library(basetheme)
+library(MASS)
 ```
+
 
 ```{r data load, echo = FALSE, include = FALSE}
 met_annmat = readRDS("../output/step1_annmat.RDS")
@@ -34,7 +36,7 @@ basetheme(basetheme_dark())
 hist(cor_means, col = "red")
 
 outlier_no = 100
-sd_cutoff = -3
+sd_cutoff = -4
 it_no = 0
 while(outlier_no > 0){
 	it_no = it_no + 1
@@ -43,14 +45,15 @@ while(outlier_no > 0){
     stopifnot(sum(rownames(cor_means) != colnames(met_annmat)) == 0)
     met_annmat <- met_annmat[,cor_means > sd_cutoff]
     outlier_no <- sum(cor_means < sd_cutoff)
-	
 	cat(' \n\n')
 	cat(paste0("### Iteration No. ", it_no))
 	cat(' \n\n')
-	hist(cor_means, col = "red")
+	hist(cor_means, col = "red", main = "standard units of IACs", xlab = "")
 }
 
 ```
+
+Number of samples left: `r ncol(met_annmat)`
 
 # Quality control
 
@@ -69,14 +72,34 @@ cpg_sea <- cpg_means[names(cpg_means) == "OpenSea"]
 
 basetheme(basetheme_brutal())
 
-plot(density(cpg_sea), col = "blue", main = NA)
-lines(density(cpg_island), col = "palegoldenrod")
-lines(density(cpg_shore), col = "palegreen")
-lines(density(cpg_shelf), col = "purple4")
+plot(density(cpg_sea), col = "blue", main = NA, cex= 2)
+lines(density(cpg_island), col = "palegoldenrod", cex = 2)
+lines(density(cpg_shore), col = "palegreen", cex = 2)
+lines(density(cpg_shelf), col = "purple4", cex = 2)
 
 legend(x = 0.3, y = 3,
 	legend = c("sea", "island", "shore", "shelf"),
 	col = c("blue", "palegoldenrod", "palegreen", "purple4"),
-	lty = 2
+	lty = 1, cex = 2
 )
 ```
+
+## Multidimensional scaling {.tabset}
+
+Samples divide based on sex nicely when using both MDS methods.
+
+### PCA
+
+```{r pca, echo = FALSE, include = TRUE}
+met_pca <- prcomp(t(met_annmat))$x
+plot(met_pca[,1:2], col = as.factor(met_annmat$sex), main = "PCA, coloured by sex")
+```
+
+### Sammon map
+
+```{r sammon, echo = FALSE, include = TRUE}
+met_sample_dist = dist(t(met_annmat))
+met_sammon <- sammon(met_sample_dist)
+plot(met_sammon$points, col = as.factor(met_annmat$sex), main = "Sammon map, coloured by sex")
+```
+
