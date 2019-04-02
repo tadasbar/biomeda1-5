@@ -11,9 +11,11 @@ library(MASS)
 met_annmat = readRDS("../output/step1_annmat.RDS")
 ```
 
-# Outlier removal
+# Outlier removal {.tabset}
 
-## Correlation matrix
+## IAC
+
+### Correlation matrix
 
 ```{r correlation matrix, echo = FALSE, include= TRUE}
 cor_mat <- cor(met_annmat)
@@ -23,7 +25,7 @@ ggplot(melt(cor_mat)) +
 	ylab("") + xlab("")
 ```
 
-## Mean correlations {.tabset}
+### Mean correlations {.tabset}
 
 Row means of the correlation matrix
 
@@ -49,8 +51,36 @@ while(outlier_no > 0){
 	cat(paste0("### Iteration No. ", it_no))
 	cat(' \n\n')
 	hist(cor_means, col = "red", main = "standard units of IACs", xlab = "")
+	abline(v = sd_cutoff, col = "blue")
 }
 
+```
+
+## Mean distance from neighbours {.tabset}
+
+### Initial
+
+```{r mean dists, echo = FALSE, include = TRUE}
+sample_dists <- as.matrix(dist(t(met_annmat)))
+mean_dists <- scale(colMeans(sample_dists))
+
+hist(mean_dists, breaks=15, col = "green")
+abline(v = sd_cutoff, col = "red")
+
+met_annmat <- met_annmat[, abs(mean_dists) < abs(sd_cutoff)]
+```
+
+### 1st round
+
+After removal of outliers
+
+```{r mean dists, echo = FALSE, include = TRUE}
+
+sample_dists <- as.matrix(dist(t(met_annmat)))
+mean_dists <- scale(colMeans(sample_dists))
+
+hist(mean_dists, breaks=15, col = "green")
+abline(v = sd_cutoff, col = "red")
 ```
 
 Number of samples left: `r ncol(met_annmat)`
