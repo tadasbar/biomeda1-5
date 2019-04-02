@@ -1,0 +1,82 @@
+```{r libs, echo = FALSE, include = FALSE}
+library(annmatrix)
+library(ggplot2)
+library(reshape2)
+library(basetheme)
+```
+
+```{r data load, echo = FALSE, include = FALSE}
+met_annmat = readRDS("../output/step1_annmat.RDS")
+```
+
+# Outlier removal
+
+## Correlation matrix
+
+```{r correlation matrix, echo = FALSE, include= TRUE}
+cor_mat <- cor(met_annmat)
+ggplot(melt(cor_mat)) +
+	geom_tile(aes(x = Var1, y = Var2, fill = value)) +
+	theme(axis.text.x=element_blank(), axis.text.y=element_blank()) +
+	ylab("") + xlab("")
+```
+
+## Mean correlations {.tabset}
+
+Row means of the correlation matrix
+
+```{r mean cor, results = "asis", echo = FALSE, include = TRUE}
+cor_means <- colMeans(cor_mat)
+
+cat("### Initial")
+cat(' \n\n')
+basetheme(basetheme_dark())
+hist(cor_means, col = "red")
+
+outlier_no = 100
+sd_cutoff = -3
+it_no = 0
+while(outlier_no > 0){
+	it_no = it_no + 1
+    cor_mat <- cor(met_annmat)
+    cor_means <- scale(colMeans(cor_mat))
+    stopifnot(sum(rownames(cor_means) != colnames(met_annmat)) == 0)
+    met_annmat <- met_annmat[,cor_means > sd_cutoff]
+    outlier_no <- sum(cor_means < sd_cutoff)
+	
+	cat(' \n\n')
+	cat(paste0("### Iteration No. ", it_no))
+	cat(' \n\n')
+	hist(cor_means, col = "red")
+}
+
+```
+
+# Quality control
+
+## Distribution of methylation in different regions
+
+As expected, CpG seas and shelves have high methylation values while
+islands and shores have low methylation.
+
+```{r region densities, echo = FALSE, include = TRUE}
+cpg_means <- rowMeans(met_annmat)
+names(cpg_means) <- met_annmat@Relation_to_Island
+cpg_shore <- cpg_means[names(cpg_means) %in% c("N_Shore", "S_Shore")]
+cpg_shelf <- cpg_means[names(cpg_means) %in% c("N_Shelf", "S_Shelf")]
+cpg_island <- cpg_means[names(cpg_means) == "Island"]
+cpg_sea <- cpg_means[names(cpg_means) == "OpenSea"]
+
+basetheme(basetheme_brutal())
+
+plot(density(cpg_sea), col = "blue", main = NA)
+lines(density(cpg_island), col = "palegoldenrod")
+lines(density(cpg_shore), col = "palegreen")
+lines(density(cpg_shelf), col = "purple4")
+
+legend(x = 0.3, y = 3,
+	legend = c("sea", "island", "shore", "shelf"),
+	col = c("blue", "palegoldenrod", "palegreen", "purple4"),
+	lty = 2
+)
+```
