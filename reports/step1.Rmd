@@ -14,7 +14,7 @@ met_annmat = readRDS("../output/step1_annmat.RDS")
 
 # Outlier removal {.tabset}
 
-## Mean distance from neighbours {.tabset}
+## Mean distance from other samples {.tabset}
 
 ### Initial
 
@@ -83,7 +83,24 @@ hist(cor_means, col = "red")
 
 #### Iteration No. 1
 
-```{r mean cor, echo = FALSE, include = TRUE}
+```{r mean cor it1, echo = FALSE, include = TRUE}
+sd_cutoff = -2
+
+cor_mat <- cor(met_annmat)
+cor_means <- scale(colMeans(cor_mat))
+stopifnot(sum(rownames(cor_means) != colnames(met_annmat)) == 0)
+met_annmat <- met_annmat[,cor_means > sd_cutoff]
+
+IAC_outliers <- c(IAC_outliers, colnames(met_annmat)[cor_means < sd_cutoff])
+
+hist(cor_means, col = "red", main = "standard units of IACs", xlab = "")
+abline(v = sd_cutoff, col = "blue")
+
+```
+
+#### Iteration No. 2
+
+```{r mean cor it2, echo = FALSE, include = TRUE}
 sd_cutoff = -2
 
 cor_mat <- cor(met_annmat)
@@ -158,7 +175,7 @@ lines(density(cpg_shelf), col = "purple4", cex = 2)
 legend(x = 0.3, y = 3,
 	legend = c("sea", "island", "shore", "shelf"),
 	col = c("blue", "palegoldenrod", "palegreen", "purple4"),
-	lty = 1, cex = 2
+	lty = 1
 )
 ```
 
