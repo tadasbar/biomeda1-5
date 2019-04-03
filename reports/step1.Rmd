@@ -4,6 +4,7 @@ library(ggplot2)
 library(reshape2)
 library(basetheme)
 library(MASS)
+library(VennDiagram)
 ```
 
 
@@ -13,11 +14,53 @@ met_annmat = readRDS("../output/step1_annmat.RDS")
 
 # Outlier removal {.tabset}
 
-## IAC
+## Mean distance from neighbours {.tabset}
+
+### Initial
+
+```{r mean dists, echo = FALSE, include = TRUE}
+sd_cutoff = 1.5
+
+dist_outliers <- c()
+
+sample_dists <- as.matrix(dist(t(met_annmat)))
+mean_dists <- scale(colMeans(sample_dists))
+
+hist(mean_dists, breaks=15, col = "green")
+abline(v = sd_cutoff, col = "red")
+
+dist_outliers <- c(dist_outliers, colnames(met_annmat)[mean_dists > sd_cutoff])
+
+met_annmat <- met_annmat[, mean_dists < sd_cutoff]
+```
+
+### After 1st round
+
+After removal of outliers
+
+```{r mean dists after removal, echo = FALSE, include = TRUE}
+
+sample_dists <- as.matrix(dist(t(met_annmat)))
+mean_dists <- scale(colMeans(sample_dists))
+
+hist(mean_dists, breaks=15, col = "green")
+#abline(v = sd_cutoff, col = "red")
+
+```
+
+Number of samples left: `r ncol(met_annmat)`
+
+
+## IAC {.tabset}
 
 ### Correlation matrix
 
 ```{r correlation matrix, echo = FALSE, include= TRUE}
+
+IAC_outliers <- c()
+
+met_annmat = readRDS("../output/step1_annmat.RDS")
+
 cor_mat <- cor(met_annmat)
 ggplot(melt(cor_mat)) +
 	geom_tile(aes(x = Var1, y = Var2, fill = value)) +
@@ -29,61 +72,66 @@ ggplot(melt(cor_mat)) +
 
 Row means of the correlation matrix
 
-```{r mean cor, results = "asis", echo = FALSE, include = TRUE}
+#### Initial
+
+```{r mean cor init, echo = FALSE, include = TRUE}
 cor_means <- colMeans(cor_mat)
 
-cat("### Initial")
-cat(' \n\n')
 basetheme(basetheme_dark())
 hist(cor_means, col = "red")
+```
 
-outlier_no = 100
-sd_cutoff = -4
-it_no = 0
-while(outlier_no > 0){
-	it_no = it_no + 1
-    cor_mat <- cor(met_annmat)
-    cor_means <- scale(colMeans(cor_mat))
-    stopifnot(sum(rownames(cor_means) != colnames(met_annmat)) == 0)
-    met_annmat <- met_annmat[,cor_means > sd_cutoff]
-    outlier_no <- sum(cor_means < sd_cutoff)
-	cat(' \n\n')
-	cat(paste0("### Iteration No. ", it_no))
-	cat(' \n\n')
-	hist(cor_means, col = "red", main = "standard units of IACs", xlab = "")
-	abline(v = sd_cutoff, col = "blue")
-}
+#### Iteration No. 1
+
+```{r mean cor, echo = FALSE, include = TRUE}
+sd_cutoff = -2
+
+cor_mat <- cor(met_annmat)
+cor_means <- scale(colMeans(cor_mat))
+stopifnot(sum(rownames(cor_means) != colnames(met_annmat)) == 0)
+met_annmat <- met_annmat[,cor_means > sd_cutoff]
+
+IAC_outliers <- c(IAC_outliers, colnames(met_annmat)[cor_means < sd_cutoff])
+
+hist(cor_means, col = "red", main = "standard units of IACs", xlab = "")
+abline(v = sd_cutoff, col = "blue")
 
 ```
 
-## Mean distance from neighbours {.tabset}
+#### Final
 
-### Initial
+```{r mean cor final, echo = FALSE, include = TRUE}
+sd_cutoff = -2
 
-```{r mean dists, echo = FALSE, include = TRUE}
-sample_dists <- as.matrix(dist(t(met_annmat)))
-mean_dists <- scale(colMeans(sample_dists))
+cor_mat <- cor(met_annmat)
+cor_means <- scale(colMeans(cor_mat))
+stopifnot(sum(rownames(cor_means) != colnames(met_annmat)) == 0)
+met_annmat <- met_annmat[,cor_means > sd_cutoff]
 
-hist(mean_dists, breaks=15, col = "green")
-abline(v = sd_cutoff, col = "red")
+IAC_outliers <- c(IAC_outliers, colnames(met_annmat)[cor_means < sd_cutoff])
 
-met_annmat <- met_annmat[, abs(mean_dists) < abs(sd_cutoff)]
+hist(cor_means, col = "red", main = "standard units of IACs", xlab = "")
+
 ```
 
-### 1st round
-
-After removal of outliers
-
-```{r mean dists, echo = FALSE, include = TRUE}
-
-sample_dists <- as.matrix(dist(t(met_annmat)))
-mean_dists <- scale(colMeans(sample_dists))
-
-hist(mean_dists, breaks=15, col = "green")
-abline(v = sd_cutoff, col = "red")
-```
 
 Number of samples left: `r ncol(met_annmat)`
+
+## Intersection of outliers between methods
+
+```{r, intersect, echo = FALSE, include = TRUE}
+suppressMessages(suppressWarnings(
+draw.pairwise.venn(area1 = length(IAC_outliers),
+	area2 = length(dist_outliers),
+	cross.area = length(intersect(dist_outliers,
+		IAC_outliers)),
+	category = c("IAC", "Distances"),
+	fill = c("light blue", "pink"),
+	lty = "blank")
+))
+```
+
+Both methods capture completely different outliers.
 
 # Quality control
 
