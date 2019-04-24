@@ -1,0 +1,93 @@
+```{r kopts, include = FALSE, echo = FALSE}
+knitr::opts_chunk$set(
+	fig.width = 12,
+	fig.height = 8
+)
+```
+
+```{r libs, include = FALSE, echo = FALSE}
+library(knitr)
+library(WGCNA)
+library(annmatrix)
+library(heatmaply)
+```
+
+```{r data load, include = FALSE, echo = FALSE}
+data_mat = readRDS("../../output/final_annmat.RDS")
+#data_mat = data_mat[1:1000,]
+```
+
+# Clustering and dendrogram
+
+Sex seems to be the determinng factor in hierarchical clustering.
+Neither disease status nor ethnicity seem to be clustered in any meaningful manner.
+Also, one sample seems to have a mismatched 'sex' label.
+
+```{r clust, include = TRUE, echo = FALSE}
+cor_mat = 1 - abs(cor(data_mat))
+cor_dist = dist(cor_mat)
+res_hclust = hclust(cor_dist, method = "ward.D")
+
+col_mat = data.frame(
+	sex = labels2colors(data_mat$sex),
+	disease = labels2colors(data_mat$disease.status),
+	ethnicity = labels2colors(data_mat$self.reported.ethnicity))
+
+
+plotDendroAndColors(res_hclust,
+	colors = col_mat,
+	dendroLabels = FALSE)
+```
+
+# Heatmap
+
+Heatmap with the same clustering. Highly distant groups in rows are separated by sex.
+
+```{r heatmap, include = TRUE, echo = FALSE, warning = FALSE}
+cpgsds = rowMeans((data_mat - rowMeans(data_mat))^2)
+cpg_hm_no = 200
+heatmaply(
+	data_mat[order(cpgsds, decreasing = TRUE)[1:cpg_hm_no],],
+	labCol = data_mat$sex,
+	showticklabels = FALSE,
+	Colv = res_hclust,
+	k_col = 2, k_row = 2)
+```
+
+# PCA
+
+```{r prcomp, include = TRUE, echo = FALSE}
+res_prcomp = prcomp(t(data_mat))
+```
+
+## Screeplot
+
+```{r screeplot, include = TRUE, echo = FALSE}
+no_pcs = 6
+barplot((res_prcomp$sdev^2/sum(res_prcomp$sdev^2))[1:no_pcs],
+	names.arg= paste0("PC", 1:no_pcs),
+	ylab = "Ratio of variance explained")
+```
+
+It would take 
+`r which(cumsum(res_prcomp$sdev^2) / sum(res_prcomp$sdev^2) > 0.9)[1]`
+principal components to capture 90% of variance in the data.
+
+## Pair plot
+
+Sex by colors.
+Disease status by shape.
+
+```{r pairplot, include = TRUE, echo = FALSE}
+pairs(res_prcomp$x[,1:5],
+	col = labels2colors(data_mat$sex),
+	pch = as.numeric(as.factor(data_mat$disease.status)))
+```
+
+## PC Heatmap
+
+```{r pca heatmap, include = TRUE, echo = FALSE, warning = FALSE}
+heatmaply(
+	t(res_prcomp$x),
+	showticklabels = FALSE)
+```
