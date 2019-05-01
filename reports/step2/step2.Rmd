@@ -15,6 +15,7 @@ library(heatmaply)
 ```{r data load, include = FALSE, echo = FALSE}
 data_mat = readRDS("../../output/final_annmat.RDS")
 #data_mat = data_mat[1:1000,]
+gc()
 ```
 
 # Clustering and dendrogram
@@ -87,15 +88,19 @@ pairs(res_prcomp$x[,1:5],
 
 ## PC Heatmap
 
-The heatmap of principal component scroes doesn't reveal much.
+The heatmap of first 7 PCs.
 
 ```{r pca heatmap, include = TRUE, echo = FALSE, warning = FALSE}
 heatmaply(
-	t(res_prcomp$x),
-	showticklabels = FALSE)
+	t(res_prcomp$x[,1:7]),
+	showticklabels = FALSE,
+	labCol=data_mat$sex,
+	k_col = 2)
 ```
 
 ## PC relation with metadata {.tabset}
+
+Seems like the only relevant characterictis separated by first 5 PCs is sex.
 
 ### Sex
 
