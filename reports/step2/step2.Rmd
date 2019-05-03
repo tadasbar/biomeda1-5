@@ -26,7 +26,7 @@ Also, one sample seems to have a mismatched 'sex' label.
 
 ```{r clust, include = TRUE, echo = FALSE}
 cor_mat = 1 - abs(cor(data_mat))
-cor_dist = dist(cor_mat)
+cor_dist = as.dist(cor_mat)
 res_hclust = hclust(cor_dist, method = "ward.D")
 
 col_mat = data.frame(
