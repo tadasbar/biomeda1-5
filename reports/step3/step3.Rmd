@@ -5,7 +5,7 @@ library(knitr)
 
 ```{r data load, echo = FALSE, include = FALSE}
 data_mat = readRDS("../../output/final_annmat.RDS")
-#data_mat = data_mat[1:1000,]
+data_mat = data_mat[1:1000,]
 gc()
 ```
 
@@ -74,12 +74,95 @@ abline(h = -log(0.05), col = "red")
 abline(h = -log(0.01), col = "yellow")
 ```
 
+# Manhattan plot
+
+```{r manhattan, echo = FALSE, include = TRUE}
+plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
+	x = data_mat@pos[data_mat@chr == "chr1"])
+abline(h = -log(0.05), col = "red")
+abline(h = -log(0.01), col = "orange")
+```
+
 # Linear model
 
 ```{r anova, echo = FALSE, include = TRUE}
-panova = function(x)
-	anova(lm(data_mat[x,] ~ as.numeric(data_mat$age)),
-		lm(data_mat[x,] ~ 1))
+anova.results = lapply(1:nrow(data_mat), function(x){
+	#lm0 = lm(data_mat[x,] ~ as.factor(data_mat$sex))
+	#lm1 = lm(data_mat[x,] ~ as.factor(data_mat$sex) + as.numeric(data_mat$age))
+	lm0 = lm(data_mat[x,] ~ as.factor(data_mat$sex))
+	lm1 = lm(data_mat[x,] ~ as.factor(data_mat$sex) + as.numeric(data_mat$age))
+	return(c(anova(lm0, lm1)$"Pr(>F)"[2],
+		lm1$coefficients[3]))
+})
 
+t.results = Reduce(rbind, anova.results)
+colnames(t.results) = c("pvalues", "effect")
+rownames(t.results) = rownames(data_mat)
+t.results = as.data.frame(t.results)
 
+```
+
+# Comparing FASD and healthy CpG spots {.tabset}
+
+5 most significant positions. Colored by disease status
+
+```{r lin plot5, echo = FALSE, include = TRUE, results = "asis"}
+sig_vals = data_mat[match(sig_names, data_mat@Name),
+	order(data_mat$disease.status)]
+cat("\n")
+for(i in 1:5){
+	cat(paste0("## ",rownames(sig_vals)[i], "\n"))
+	cat("\n")
+	plot(sig_vals[i,], ylab = "methylation", pch = 21,
+		col = as.factor(sig_vals$disease.status))
+	cat("\n")
+	cat("\n")
+}
+```
+
+# P value table
+
+```{r lin ptab, echo = FALSE, include = TRUE}
+p_table = data.frame(
+	"Significance" = c("α = 0.1", "α = 0.05",
+		"α = 0.01", "FDR = 0.05", "Bonf = 0.05"),
+	"No. of genes" = c(
+		sum(t.results$pvalues < 0.1),
+		sum(t.results$pvalues < 0.05),
+		sum(t.results$pvalues < 0.01),
+		sum(p.adjust(t.results$pvalues,
+			method = "fdr") < 0.05),
+		sum(p.adjust(t.results$pvalues,
+			method = "bonferroni") < 0.05)))
+kable(p_table)
+```
+
+# P value histogram
+
+Seems liek there aren't many discoveries. Using a significance level
+cutoff directly might produce many false discoveries, so a further p
+value adjustment is needed.
+
+```{r lin phist, echo = FALSE, include = TRUE}
+hist(t.results$pvalues, main = "P values", breaks = 80)
+```
+
+# Volcano plot
+
+Red and yellow lines mark significance levels 0.05 and 0.01.
+
+```{r lin vvolcplot, echo = FALSE, include = TRUE}
+plot(t.results$effect, -log(t.results$pvalues),
+	xlab = "effect size", ylab = "-log P value")
+abline(h = -log(0.05), col = "red")
+abline(h = -log(0.01), col = "yellow")
+```
+
+# Manhattan plot
+
+```{r lin manhattan, echo = FALSE, include = TRUE}
+plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
+	x = data_mat@pos[data_mat@chr == "chr1"])
+abline(h = -log(0.05), col = "red")
+abline(h = -log(0.01), col = "orange")
 ```
