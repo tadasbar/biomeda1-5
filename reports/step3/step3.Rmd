@@ -60,7 +60,8 @@ cutoff directly might produce many false discoveries, so a further p
 value adjustment is needed.
 
 ```{r phist, echo = FALSE, include = TRUE}
-hist(t.results$pvalues, main = "P values", breaks = 80)
+hist(t.results$pvalues, main = "P values", breaks = 80,
+	xlab = "P value")
 ```
 
 # Volcano plot
@@ -76,11 +77,12 @@ abline(h = -log(0.01), col = "yellow")
 
 # Manhattan plot
 
-```{r manhattan, echo = FALSE, include = TRUE}
+```{r manhattan, echo = FALSE, include = TRUE, fig.width = 10}
 plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
 	x = data_mat@pos[data_mat@chr == "chr1"],
 	xlab = "position",
-	ylab = "-log P value")
+	ylab = "-log P value",
+	col = as.factor(data_mat[match(rownames(t.results), rownames(data_mat)),]@Enhancer))
 abline(h = -log(0.05), col = "red")
 abline(h = -log(0.01), col = "orange")
 ```
@@ -151,7 +153,8 @@ cutoff directly might produce many false discoveries, so a further p
 value adjustment is needed.
 
 ```{r lin phist, echo = FALSE, include = TRUE}
-hist(t.results$pvalues, main = "P values", breaks = 80)
+hist(t.results$pvalues, main = "P values", breaks = 80,
+	xlab = "P value")
 ```
 
 # Volcano plot
@@ -167,11 +170,12 @@ abline(h = -log(0.01), col = "yellow")
 
 # Manhattan plot
 
-```{r lin manhattan, echo = FALSE, include = TRUE}
+```{r lin manhattan, echo = FALSE, include = TRUE, fig.width = 10}
 plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
 	x = data_mat@pos[data_mat@chr == "chr1"],
 	xlab = "position",
-	ylab = "-log P value")
+	ylab = "-log P value",
+	col = as.factor(data_mat[match(rownames(t.results), rownames(data_mat)),]@Enhancer))
 abline(h = -log(0.05), col = "red")
 abline(h = -log(0.01), col = "orange")
 ```
