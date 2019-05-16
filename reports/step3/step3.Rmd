@@ -1,11 +1,12 @@
 ```{r libsnopts, echo = FALSE, include = FALSE}
 library(annmatrix)
 library(knitr)
+library(limma)
 ```
 
 ```{r data load, echo = FALSE, include = FALSE}
 data_mat = readRDS("../../output/final_annmat.RDS")
-#data_mat = data_mat[1:1000,]
+data_mat = data_mat[data_mat@chr == "chr1",]
 gc()
 ```
 
@@ -17,6 +18,7 @@ t.results = data.frame(pvalues = sapply(tests, function(x) x$p.value),
 	effect = sapply(tests, function(x) diff(x$estimate)))
 sig_names = rownames(t.results[order(t.results$pvalues),])[1:5]
 ```
+# Analysis of FASD Case/Control data; only CHR1 is used for faster computation
 
 # Comparing FASD and healthy CpG spots {.tabset}
 
@@ -40,9 +42,10 @@ for(i in 1:5){
 
 ```{r ptab, echo = FALSE, include = TRUE}
 p_table = data.frame(
-	"Significance" = c("α = 0.1", "α = 0.05",
+	"Significance" = c("Total", "α = 0.1", "α = 0.05",
 		"α = 0.01", "FDR = 0.05", "Bonf = 0.05"),
 	"No. of genes" = c(
+		length(t.results$pvalues),
 		sum(t.results$pvalues < 0.1),
 		sum(t.results$pvalues < 0.05),
 		sum(t.results$pvalues < 0.01),
@@ -55,9 +58,10 @@ kable(p_table)
 
 # P value histogram
 
-Seems liek there aren't many discoveries. Using a significance level
-cutoff directly might produce many false discoveries, so a further p
-value adjustment is needed.
+Seems like there aren't many discoveries. Using a significance level
+cutoff directly might produce many false discoveries, since the number of discoveries with $\alpha=0.05$ is less than 5% of the number of all probes.
+
+This is also reflected in the low number of significant probes left after FDR and Bonferroni corrections.
 
 ```{r phist, echo = FALSE, include = TRUE}
 hist(t.results$pvalues, main = "P values", breaks = 80,
@@ -66,16 +70,23 @@ hist(t.results$pvalues, main = "P values", breaks = 80,
 
 # Volcano plot
 
-Red and yellow lines mark significance levels 0.05 and 0.01.
+Red line marks the p value of 0.05 and the yellow one is the threshold of significance after Bonferroni correction.
+
+The symmetry along $x=0$ axis shows that neither cases nor controls have more probes that have lower or higher mean methylation values.
 
 ```{r vvolcplot, echo = FALSE, include = TRUE}
 plot(t.results$effect, -log(t.results$pvalues),
 	xlab = "effect size", ylab = "-log P value")
 abline(h = -log(0.05), col = "red")
-abline(h = -log(0.01), col = "yellow")
+abline(h = -log(0.05 / nrow(data_mat)), col = "yellow")
 ```
 
 # Manhattan plot
+
+The distribution of $-log(P)$ values in the 1st chromosome.
+
+The density plot shows that the bumps of significant probes are caused by
+high density of probes in certain intervals of the chromosome and are to be expected.
 
 ```{r manhattan, echo = FALSE, include = TRUE, fig.width = 10}
 plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
@@ -84,7 +95,13 @@ plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
 	ylab = "-log P value",
 	col = as.factor(data_mat[match(rownames(t.results), rownames(data_mat)),]@Enhancer))
 abline(h = -log(0.05), col = "red")
-abline(h = -log(0.01), col = "orange")
+abline(h = -log(0.05 / nrow(data_mat)), col = "orange")
+
+pos_dens = density(as.numeric(data_mat@pos[data_mat@chr == "chr1"]))
+pos_dens$y = pos_dens$y - min(pos_dens$y)
+pos_dens$y = pos_dens$y / max(pos_dens$y)
+pos_dens$y = 5 * pos_dens$y
+lines(pos_dens, col = "grey", lwd = 5)
 ```
 
 # Linear model
@@ -93,37 +110,31 @@ abline(h = -log(0.01), col = "orange")
 data_mat = data_mat[,
 	data_mat$self.reported.ethnicity %in%
 		c("first nations", "caucasian")]
+data_mat$age = as.numeric(data_mat$age)
 
-anova.results = lapply(1:nrow(data_mat), function(x){
-	#lm0 = lm(data_mat[x,] ~ as.factor(data_mat$sex))
-	#lm1 = lm(data_mat[x,] ~ as.factor(data_mat$sex) + as.numeric(data_mat$age))
-	lm0 = lm(data_mat[x,] ~ as.factor(data_mat$sex))
-	lm1 = lm(data_mat[x,] ~ as.factor(data_mat$sex) + as.numeric(data_mat$age))
-	return(c(anova(lm0, lm1)$"Pr(>F)"[2],
-		lm1$coefficients[3]))
-})
+lmfit.results = eBayes(lmFit(object = data_mat,
+	design = model.matrix(~ data_mat$age)))
 
-t.results = Reduce(rbind, anova.results)
-colnames(t.results) = c("pvalues", "effect")
-rownames(t.results) = rownames(data_mat)
-t.results = as.data.frame(t.results)
+t.results = data.frame(
+	pvalues = lmfit.results$p.value[,2],
+	effect = lmfit.results$coefficients[,2])
 
 ```
 
-# CpGs with non-equal mean methylation between ethnicities {.tabset}
+# CpGs that correlate with age {.tabset}
 
-5 most significant positions. Colored by ethnicity
+5 most significant positions.
 
 ```{r lin plot5, echo = FALSE, include = TRUE, results = "asis"}
 sig_names = rownames(t.results[order(t.results$pvalues),])[1:5]
-sig_vals = data_mat[match(sig_names, data_mat@Name),
-	order(data_mat$self.reported.ethnicity)]
+sig_vals = data_mat[match(sig_names, data_mat@Name), ]
 cat("\n")
 for(i in 1:5){
 	cat(paste0("## ",rownames(sig_vals)[i], "\n"))
 	cat("\n")
-	plot(sig_vals[i,], ylab = "methylation", pch = 21,
-		col = as.factor(sig_vals$self.reported.ethnicity))
+	plot(y = sig_vals[i, ], x = sig_vals$age,
+		xlab = "age", ylab = "methylation", pch = 19)
+	abline(lm(sig_vals[i, ] ~ sig_vals$age), col = "red")
 	cat("\n")
 	cat("\n")
 }
@@ -133,9 +144,10 @@ for(i in 1:5){
 
 ```{r lin ptab, echo = FALSE, include = TRUE}
 p_table = data.frame(
-	"Significance" = c("α = 0.1", "α = 0.05",
+	"Significance" = c("Total", "α = 0.1", "α = 0.05",
 		"α = 0.01", "FDR = 0.05", "Bonf = 0.05"),
 	"No. of genes" = c(
+		length(t.results$pvalues),
 		sum(t.results$pvalues < 0.1),
 		sum(t.results$pvalues < 0.05),
 		sum(t.results$pvalues < 0.01),
@@ -148,9 +160,7 @@ kable(p_table)
 
 # P value histogram
 
-Seems liek there aren't many discoveries. Using a significance level
-cutoff directly might produce many false discoveries, so a further p
-value adjustment is needed.
+The number of discoveries is higher than before, it can also be seen in the P value histogram which has a higher proportion of probes with small P values.
 
 ```{r lin phist, echo = FALSE, include = TRUE}
 hist(t.results$pvalues, main = "P values", breaks = 80,
@@ -159,16 +169,23 @@ hist(t.results$pvalues, main = "P values", breaks = 80,
 
 # Volcano plot
 
-Red and yellow lines mark significance levels 0.05 and 0.01.
+Red and yellow lines are the same as before.
+
+This plot is not as symmetrical as the previous one, it is slightly skewed to the left. This means that there are more values with negative effect size.
+However, if we look only at data left after Bonferroni correction, there are more CpGs that increase in methylation with age.
 
 ```{r lin vvolcplot, echo = FALSE, include = TRUE}
 plot(t.results$effect, -log(t.results$pvalues),
 	xlab = "effect size", ylab = "-log P value")
 abline(h = -log(0.05), col = "red")
-abline(h = -log(0.01), col = "yellow")
+abline(h = -log(0.05 / nrow(data_mat)), col = "yellow")
 ```
 
 # Manhattan plot
+
+Similar graph as before, just with the Bonferroni threshold line 'lower'. In this plot some spikes of highly
+significant probes are more evident and are not captured by the density plot (e.g. peaks around position $10^8$)
+which suggests that some regions in the chromosome have a higher proportion of significant probes.
 
 ```{r lin manhattan, echo = FALSE, include = TRUE, fig.width = 10}
 plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
@@ -177,5 +194,11 @@ plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
 	ylab = "-log P value",
 	col = as.factor(data_mat[match(rownames(t.results), rownames(data_mat)),]@Enhancer))
 abline(h = -log(0.05), col = "red")
-abline(h = -log(0.01), col = "orange")
+abline(h = -log(0.05 / nrow(data_mat)), col = "orange")
+
+pos_dens = density(as.numeric(data_mat@pos[data_mat@chr == "chr1"]))
+pos_dens$y = pos_dens$y - min(pos_dens$y)
+pos_dens$y = pos_dens$y / max(pos_dens$y)
+pos_dens$y = 5 * pos_dens$y
+lines(pos_dens, col = "grey", lwd = 5)
 ```
