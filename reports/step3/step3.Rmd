@@ -5,7 +5,7 @@ library(knitr)
 
 ```{r data load, echo = FALSE, include = FALSE}
 data_mat = readRDS("../../output/final_annmat.RDS")
-data_mat = data_mat[1:1000,]
+#data_mat = data_mat[1:1000,]
 gc()
 ```
 
@@ -78,7 +78,9 @@ abline(h = -log(0.01), col = "yellow")
 
 ```{r manhattan, echo = FALSE, include = TRUE}
 plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
-	x = data_mat@pos[data_mat@chr == "chr1"])
+	x = data_mat@pos[data_mat@chr == "chr1"],
+	xlab = "position",
+	ylab = "-log P value")
 abline(h = -log(0.05), col = "red")
 abline(h = -log(0.01), col = "orange")
 ```
@@ -86,6 +88,10 @@ abline(h = -log(0.01), col = "orange")
 # Linear model
 
 ```{r anova, echo = FALSE, include = TRUE}
+data_mat = data_mat[,
+	data_mat$self.reported.ethnicity %in%
+		c("first nations", "caucasian")]
+
 anova.results = lapply(1:nrow(data_mat), function(x){
 	#lm0 = lm(data_mat[x,] ~ as.factor(data_mat$sex))
 	#lm1 = lm(data_mat[x,] ~ as.factor(data_mat$sex) + as.numeric(data_mat$age))
@@ -102,19 +108,20 @@ t.results = as.data.frame(t.results)
 
 ```
 
-# Comparing FASD and healthy CpG spots {.tabset}
+# CpGs with non-equal mean methylation between ethnicities {.tabset}
 
-5 most significant positions. Colored by disease status
+5 most significant positions. Colored by ethnicity
 
 ```{r lin plot5, echo = FALSE, include = TRUE, results = "asis"}
+sig_names = rownames(t.results[order(t.results$pvalues),])[1:5]
 sig_vals = data_mat[match(sig_names, data_mat@Name),
-	order(data_mat$disease.status)]
+	order(data_mat$self.reported.ethnicity)]
 cat("\n")
 for(i in 1:5){
 	cat(paste0("## ",rownames(sig_vals)[i], "\n"))
 	cat("\n")
 	plot(sig_vals[i,], ylab = "methylation", pch = 21,
-		col = as.factor(sig_vals$disease.status))
+		col = as.factor(sig_vals$self.reported.ethnicity))
 	cat("\n")
 	cat("\n")
 }
@@ -162,7 +169,9 @@ abline(h = -log(0.01), col = "yellow")
 
 ```{r lin manhattan, echo = FALSE, include = TRUE}
 plot(y = -log(t.results$pvalues[data_mat@chr == "chr1"]),
-	x = data_mat@pos[data_mat@chr == "chr1"])
+	x = data_mat@pos[data_mat@chr == "chr1"],
+	xlab = "position",
+	ylab = "-log P value")
 abline(h = -log(0.05), col = "red")
 abline(h = -log(0.01), col = "orange")
 ```
